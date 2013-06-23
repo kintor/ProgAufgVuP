@@ -11,7 +11,7 @@ Funktionalität soll realisiert werden:
    können. Hierzu ist eine Hashfunktion, der Knotenbeitritt, sowie das
    Stabilization-Protokoll erforderlich. Eine Finger-Tabelle und das
    Maskieren von Knotenausfällen sind nicht notwendig. Für die
-   Kommunikation zwischen den Knoten sollen TCP- Verbindungen verwendet
+   Kommunikation zwischen den Knoten sollen TCP-Verbindungen verwendet
    werden.
 2. Das Programm soll vier Parameter auf der Konsole entgegen nehmen:
 	- ip: die eigene IP-Adresse
