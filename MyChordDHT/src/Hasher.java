@@ -1,21 +1,21 @@
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-
 
 public class Hasher {
 	// Attribute
-	private MessageDigest hasher;
+	private String nodeID;
+	private int hash;
 	
 	//Konstruktor
-	Hasher (String algorithm) {
-		try {
-			this.hasher = MessageDigest.getInstance(algorithm);
-		} catch (NoSuchAlgorithmException e) {
-			System.out.println("Hash-Funktion ist nicht verfügbar");
-			e.printStackTrace();
-		}
+	Hasher () {
 	}
 	
+	public int NodeToHash(String nodeIP, int nodePort) {
+		nodeID = nodeIP + nodePort;
+		hash = nodeID.hashCode();
+		return hash;
+	}
 	
-
+	public int StringToHash(String str) {
+		hash = str.hashCode();
+		return hash;
+	}
 }
