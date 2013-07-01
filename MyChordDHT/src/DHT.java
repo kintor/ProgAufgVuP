@@ -1,8 +1,49 @@
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 
 public class DHT {
-	// Konfigurationsparameter
-	
-	public static void main(String[] args) {
-	}
+	// Attribute
+	private static RingNode node;
+	private static String selfIP;
+	private static int selfPort;
+	private static String entryIP;
+	private static int entryPort;
 
+	private static BufferedReader in;
+	private static String exec;
+
+	// Main
+	public static void main(String[] args) {
+		selfIP = args[0];
+		selfPort = Integer.parseInt(args[1]);
+		if (args.length > 2) {
+			entryIP = args[2];
+			entryPort = Integer.parseInt(args[3]);
+		} else {
+			entryIP = args[0];
+			entryPort = Integer.parseInt(args[1]);
+		}
+
+		node = new RingNode(selfIP, selfPort, entryIP, entryPort);
+		node.startEndPoint();
+		if (args.length > 2) {
+			node.searchPosition();
+		}
+		
+		// Eingabe für User-Befehle
+		in = new BufferedReader(new InputStreamReader(System.in));
+		exec = "";
+
+		do {
+			try {
+				exec = in.readLine();
+				if (exec.contains("exit")) {
+					break;
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		} while (true);
+	}
 }
