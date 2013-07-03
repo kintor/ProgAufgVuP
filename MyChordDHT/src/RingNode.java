@@ -13,6 +13,7 @@ public class RingNode extends Node {
 	private static final long serialVersionUID = 1L;
 	private Node nextNode;
 	private Node prevNode;
+	
 	private ServerSocket sock;
 	private Socket conn;
 	private BufferedReader inEndPoint;
