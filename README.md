@@ -1,4 +1,5 @@
-#Abschlussprojekt zur Vorlesung „Verteilte und Parallele Systeme“
+# Abschlussprojekt zur Vorlesung „Verteilte und Parallele Systeme“
+
 In der Vorlesung haben Sie das Chord-System, eine Distributed Hash Table
 (DHT), kennengelernt. Im Rahmen des Abschlussprojektes sollen Sie eine
 Chord-DHT (in Java oder C) selbst implementieren. Abgabe des Quelltextes,

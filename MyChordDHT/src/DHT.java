@@ -26,7 +26,8 @@ public class DHT {
 		}
 
 		node = new RingNode(selfIP, selfPort, entryIP, entryPort);
-		node.startEndPoint();
+		node.initServerThread();
+		node.startListening();
 		if (args.length > 2) {
 			node.searchPosition();
 		}
@@ -35,7 +36,7 @@ public class DHT {
 		in = new BufferedReader(new InputStreamReader(System.in));
 		exec = "";
 
-		do {
+		while (true) {
 			try {
 				exec = in.readLine();
 				if (exec.contains("exit")) {
@@ -44,6 +45,6 @@ public class DHT {
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-		} while (true);
+		}
 	}
 }

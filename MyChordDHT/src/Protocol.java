@@ -3,11 +3,12 @@
  * Task,Absender-IP,Absender-Port,Daten
  * 
  * Task beschreibt die Aufgabe:
- * 		neuer Knoten: 	new -> 0
- * 		Suche:		 	search -> 1
- * 		Stabilization: 	ping -> 2
- * 						pong -> 3
- * 		Austritt:		leave -> 4
+ * 		Position neuer Knoten:	position -> 0
+ * 		Anmelden neuer Knoten: 	new -> 1
+ * 		Suche nach Daten:	 	search -> 2
+ * 		Stabilization: 			ping -> 3
+ * 								pong -> 4
+ * 		Austritt eines Knoten:	leave -> 5
  */
 
 public class Protocol {
@@ -20,16 +21,18 @@ public class Protocol {
 
 	public int evalTask(String msg) {
 		String tmp = msg.split(",")[0];
-		if (tmp.equals("new")) {
+		if (tmp.equals("position")) {
 			task = 0;
-		} else if (tmp.equals("search")) {
+		} else if (tmp.equals("new")) {
 			task = 1;
-		} else if (tmp.equals("ping")) {
+		} else if (tmp.equals("search")) {
 			task = 2;
-		} else if (tmp.equals("pong")) {
+		} else if (tmp.equals("ping")) {
 			task = 3;
-		} else if (tmp.equals("leave")) {
+		} else if (tmp.equals("pong")) {
 			task = 4;
+		} else if (tmp.equals("leave")) {
+			task = 5;
 		}
 		return task;
 	}
