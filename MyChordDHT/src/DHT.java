@@ -28,6 +28,7 @@ public class DHT {
 		node = new RingNode(selfIP, selfPort, entryIP, entryPort);
 		node.initServerThread();
 		node.startListening();
+		node.startStabilization();
 		if (args.length > 2) {
 			node.searchPosition();
 		}
@@ -39,6 +40,9 @@ public class DHT {
 		while (true) {
 			try {
 				exec = in.readLine();
+				if (exec.equals("status")) {
+					node.showStatus();
+				}
 				if (exec.contains("exit")) {
 					break;
 				}

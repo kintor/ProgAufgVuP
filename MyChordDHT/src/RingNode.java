@@ -1,93 +1,116 @@
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.PrintStream;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.UnknownHostException;
+import java.util.Timer;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class RingNode extends Node {
+public class RingNode extends Node implements Runnable {
 	// Attribute
 	private static final long serialVersionUID = 1L;
-	private Node nextNode;
-	private Node prevNode;
+	public volatile Node nextNode;
+	public volatile Node prevNode;
 
 	private ServerSocket sock;
 	private Socket conn;
 	private boolean serverStopped;
-	private BufferedReader inServer;
-	private ObjectOutputStream outServer;
-	private ObjectInputStream inConnection;
-	private PrintStream outConnection;
-	private String inMsg;
+
+	private Thread server;
+	private ExecutorService msgHandlerPool; // nimmt Verbindungen an
+	private Timer timer;
 	private Protocol protocol;
 	private Communicator communicator;
 
-	private Thread server;
-	private ExecutorService serverThreadPool; // nimmt Verbindungen an
-
+	// Konstruktor
 	public RingNode(String ip, int port, String nextIp, int nextPort) {
 		super(ip, port);
 		nextNode = new Node(nextIp, nextPort);
-		prevNode = new Node(null, 0);
-		protocol = new Protocol();
-		communicator = new Communicator();
+		timer = new Timer();
+		communicator = new Communicator(this);
+		protocol = new Protocol(this);
 	}
 
-	public void setNextNode(String ip, int port) {
-		nextNode.setNode(ip, port);
+	// Getter und Setter
+	public Protocol getProtocol() {
+		return protocol;
+	}
+
+	public Communicator getCommunicator() {
+		return communicator;
+	}
+
+	public Socket getConnection() {
+		return conn;
+	}
+
+	// setzt die Werte fŸr nextNode
+	public synchronized void setNextNode(String ip, int port) {
+		nextNode = new Node(ip, port);
 		System.out.println("Mein Nachfolger ist jetzt " + ip + ":" + port);
 	}
 
-	private void setPrevNode(String ip, int port) {
-		prevNode.setNode(ip, port);
+	// setzt die Werte fŸr prevNode
+	public synchronized void setPrevNode(String ip, int port) {
+		prevNode = new Node(ip, port);
+		System.out.println("Mein Vorgaenger ist jetzt " + ip + ":" + port);
+	}
+
+	public void showStatus() {
+		if (prevNode != null) {
+			System.out.println("Mein Vorgaenger: ");
+			System.out.println("    Ip: " + prevNode.getIp());
+			System.out.println("    Port: " + prevNode.getPort());
+			System.out.println("    Hash: " + prevNode.getHash());
+		}
+		System.out.println("Ich: ");
+		System.out.println("    Ip: " + getIp());
+		System.out.println("    Port: " + getPort());
+		System.out.println("    Hash: " + getHash());
+
+		System.out.println("Mein Nachfolger: ");
+		System.out.println("    Ip: " + nextNode.getIp());
+		System.out.println("    Port: " + nextNode.getPort());
+		System.out.println("    Hash: " + nextNode.getHash());
 	}
 
 	/*
-	 * Server-Thread: eršffnet einen ServerSocket, nimmt Verbindungen an und
-	 * verteilt sie dann an einen ThreadPool
+	 * run-Methode fŸr Server-Thread: eršffnet einen ServerSocket, nimmt
+	 * Verbindungen an und verteilt sie dann an einen ThreadPool
 	 */
-	public void initServerThread() {
-		server = new Thread(new Runnable() {
-			public void run() {
-				try {
-					serverThreadPool = Executors.newCachedThreadPool();
-					sock = new ServerSocket(getPort());
-					System.out.println("DEBUG: Horche auf Port: " + getPort());
-					while (!serverStopped) {
-						conn = sock.accept();
-						serverThreadPool.execute(new ServerThreadWorker(conn,
-								null)); // TODO: Node irgendwie Ÿbergeben? :-/
-					}
-				} catch (IOException e) {
-					if (serverStopped) {
-						System.out.println("Server ist gestoppt auf Port: "
-								+ getPort());
-					}
-					e.printStackTrace();
-				}
+	public void run() {
+		try {
+			msgHandlerPool = Executors.newCachedThreadPool();
+			sock = new ServerSocket(getPort());
+			System.out.println("DEBUG: Horche auf Port: " + getPort());
+			while (!serverStopped) {
+				conn = sock.accept();
+				msgHandlerPool.execute(new MessageHandler(conn, this));
 			}
-		});
+		} catch (IOException e) {
+			if (serverStopped) {
+				System.out.println("DEBUG: Server ist gestoppt auf Port: "
+						+ getPort());
+			}
+			e.printStackTrace();
+		}
 	}
 
-	/*
-	 * startet den Server-Thread
-	 */
+	// erzeugt den Server-Thread
+	public void initServerThread() {
+		server = new Thread(this);
+	}
+
+	// startet den Server-Thread
 	public void startListening() {
 		serverStopped = false;
 		server.start();
 	}
 
-	/*
-	 * beende den ThreadPool und schlie§e den ServerSocket
-	 */
-	private boolean stopListening() {
+	// beende den ThreadPool und schlie§e den ServerSocket
+	public boolean stopListening() {
 		try {
 			serverStopped = true;
-			serverThreadPool.shutdown();
+			msgHandlerPool.shutdown();
 			sock.close();
 			return true;
 		} catch (IOException e) {
@@ -96,171 +119,49 @@ public class RingNode extends Node {
 		return false;
 	}
 
-	public void searchNodePosition(String msg) {
-		try {
-			/*
-			 * liegt der gesuchte Hash-Wert zwischen dem eigenen und dem
-			 * Nachfolger, so sende nextNode zurŸck, sonst Anfrage weiterreichen
-			 * an nextNode
-			 */
-			outServer = new ObjectOutputStream(conn.getOutputStream());
-			long hash = protocol.getHash(msg);
-
-			System.out.println("DEBUG: " + getHash()); // 7
-			System.out.println("DEBUG: " + hash); // 9
-			System.out.println("DEBUG: " + nextNode.getHash()); // 3
-
-			if (getHash() == nextNode.getHash()) {
-				// besteht der Ring derzeit aus nur einem Node,
-				// so wird dieser zurŸck geliefert
-				// self: 7 - search: 9 - next: 7
-				outServer.writeObject(nextNode);
-			} else if (getHash() > nextNode.getHash()) {
-				// Grenze im Wertbereich des Rings
-				// -> nextNode ist kleiner als ich selbst
-				// self: 7 - next: 3
-				if ((getHash() < hash) || (hash < nextNode.getHash())) {
-					// gesuchter Key liegt im Grenzbereich
-					// self:7 - search:9
-					// oder:Êsearch:2 - next:3
-					outServer.writeObject(nextNode);
-				} else {
-					// gesuchter Key liegt hinter dem nextNode,
-					// also weiterleiten
-					// self: 7 - search: 5 - next: 3
-					outServer.writeObject(startConnection(msg));
-				}
-			} else if ((getHash() < hash) && (hash < nextNode.getHash())) {
-				// gesuchter Key liegt zwischen mir und
-				// nextNode,
-				// also liefer nextNode zurŸck
-				// self: 7 - search: 9 - next: 13
-				outServer.writeObject(nextNode);
+	// ist das Ziel noch nicht erreicht, wird die Anfrage weitergeleitet,
+	// ansonsten der nŠchste Knoten zurŸck geschickt
+	public synchronized Node searchNodePosition(String req, String ip, int port, long hash) {
+		/*
+		 * System.out.println("DEBUG: " + getHash()); // 7
+		 * System.out.println("DEBUG: " + hash); // 9
+		 * System.out.println("DEBUG: " + nextNode.getHash()); // 3
+		 */
+		if (getHash() == nextNode.getHash()) {
+			// besteht der Ring derzeit aus nur einem Node, so wird dieser
+			// zurŸck geliefert und der anfragende Knoten wird zum nextNode
+			// self: 7 - search: 9 - next: 7
+			Node tmpNode = nextNode;
+			setNextNode(ip, port);
+			System.out.println("antworte mit Knoten");
+			return tmpNode;
+		} else if (getHash() > nextNode.getHash()) {
+			// Grenze im Wertbereich des Rings
+			// -> nextNode ist kleiner als ich selbst
+			// self: 7 - next: 3
+			if ((getHash() < hash) || (hash < nextNode.getHash())) {
+				// gesuchter Key liegt im Grenzbereich
+				// self: 7 - search: 9
+				// oder:Êsearch: 2 - next: 3
+				System.out.println("antworte mit Knoten");
+				return nextNode;
 			} else {
-				// gesuchter Key liegt hinter dem nextNode, also
-				// weiterleiten
-				outServer.writeObject(startConnection(msg));
+				// gesuchter Key liegt hinter dem nextNode, also weiterleiten
+				// self: 7 - search: 5 - next: 3
+				System.out.println("weiterleiten");
+				return communicator.connect2FindNodePosition(req);
 			}
-		} catch (IOException e) {
-			e.printStackTrace();
+		} else if ((getHash() < hash) && (hash < nextNode.getHash())) {
+			// gesuchter Key liegt zwischen mir und nextNode, also liefere
+			// nextNode zurŸck
+			// self: 7 - search: 9 - next: 13
+			System.out.println("antworte mit Knoten");
+			return nextNode;
+		} else {
+			// gesuchter Key liegt hinter dem nextNode, also weiterleiten
+			System.out.println("weiterleiten");
+			return communicator.connect2FindNodePosition(req);
 		}
-	}
-
-	/*
-	 * Wird fŸr jeden Node gestartet. Im eigenen Thread lŠuft dauerhaft das
-	 * Horchen auf den Port
-	 */
-	public void startEndPoint() {
-		Thread endPoint = new Thread(new Runnable() {
-			public void run() {
-				try {
-					String leave = "no";
-					do {
-						outServer = new ObjectOutputStream(conn
-								.getOutputStream());
-						inMsg = inServer.readLine();
-
-						int task = protocol.evalTask(inMsg);
-						switch (task) {
-						case 0:
-							System.out.println("Ein neuer Knoten");
-							setNextNode(protocol.getIP(inMsg),
-									protocol.getPort(inMsg));
-							break;
-						case 1:
-							System.out.println("Suche nach Daten");
-							/*
-							 * liegt der gesuchte Hash-Wert zwischen dem eigenen
-							 * und dem Nachfolger, so sende nextNode zurŸck,
-							 * sonst Anfrage weiterreichen an nextNode
-							 */
-							long hash = protocol.getHash(inMsg);
-							System.out.println(getHash()); // 7
-							System.out.println(hash); // 9
-							System.out.println(nextNode.getHash()); // 3
-
-							if (getHash() == nextNode.getHash()) {
-								// besteht der Ring derzeit aus nur einem Node,
-								// so wird dieser zurŸck geliefert
-								// self: 7 - search: 9 - next: 7
-								outServer.writeObject(nextNode);
-							} else if (getHash() > nextNode.getHash()) {
-								// Grenze im Wertbereich des Rings
-								// -> nextNode ist kleiner als ich selbst
-								// self: 7 - next: 3
-								if ((getHash() < hash)
-										|| (hash < nextNode.getHash())) {
-									// gesuchter Key liegt im Grenzbereich
-									// self:7 - search:9
-									// oder:Êsearch:2 - next:3
-									outServer.writeObject(nextNode);
-								} else {
-									// gesuchter Key liegt hinter dem nextNode,
-									// also weiterleiten
-									// self: 7 - search: 5 - next: 3
-									outServer
-											.writeObject(startConnection(inMsg));
-								}
-							} else if ((getHash() < hash)
-									&& (hash < nextNode.getHash())) {
-								// gesuchter Key liegt zwischen mir und
-								// nextNode,
-								// also liefer nextNode zurŸck
-								// self: 7 - search: 9 - next: 13
-								outServer.writeObject(nextNode);
-							} else {
-								// gesuchter Key liegt hinter dem nextNode, also
-								// weiterleiten
-								outServer.writeObject(startConnection(inMsg));
-							}
-
-						case 2:
-							System.out.println("Ping");
-							break;
-						case 3:
-							System.out.println("Pong");
-							break;
-						case 4:
-							System.out.println("Node leaves");
-							break;
-						}
-						conn.close();
-						System.out.println("Verbindung wieder geschlossen...");
-					} while (leave.equals("no"));
-					sock.close();
-					System.out
-							.println("Socket geschlossen, horche nicht mehr auf Port");
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
-		});
-		endPoint.start();
-	}
-
-	/*
-	 * šffnet eine neue Verbindung zum nŠchsten Node, wird im benštigten Fall
-	 * gešffnet Antwort vom Endpunkt ist immer ein Node-Objekt
-	 */
-	private Node startConnection(String connMsg) {
-		System.out.println("Starte Verbindung zu IP " + nextNode.getIp()
-				+ " auf Port " + nextNode.getPort());
-		Node responseNode = null;
-		try {
-			conn = new Socket(nextNode.getIp(), nextNode.getPort());
-			outConnection = new PrintStream(conn.getOutputStream());
-			outConnection.println(connMsg);
-			inConnection = new ObjectInputStream(conn.getInputStream());
-			responseNode = (Node) inConnection.readObject();
-			// conn.close();
-		} catch (UnknownHostException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		} catch (ClassNotFoundException e) {
-			e.printStackTrace();
-		}
-		return responseNode;
 	}
 
 	/*
@@ -268,14 +169,20 @@ public class RingNode extends Node {
 	 * ermittelt
 	 */
 	public void searchPosition() {
-		Node tmpNode = startConnection("position," + this.getIp() + ","
-				+ this.getPort() + "," + this.getHash());
+		Node tmpNode = communicator.connect2FindNodePosition("position,"
+				+ getIp() + "," + getPort() + "," + getHash());
 		setNextNode(tmpNode.getIp(), tmpNode.getPort());
-		// tmpNode = startConnection("new," + this.getIp() + "," +
-		// this.getPort()
-		// + "," + this.getHash());
 
-		// spŠtere Mšglichkeit die Finger-Table zu erstellen
+		// sage dem nŠchsten Knoten seinen neuer VorgŠnger
+		communicator.connect2SetPrev();
+
+		// startStabilization();
+
+		// spŠtere Mšglichkeit die Finger-Table zu erstellen:
 		// refreshTable();
+	}
+	
+	public void startStabilization() {
+		timer.schedule(protocol, 2000, 5000);
 	}
 }

@@ -1,51 +1,23 @@
-/*
- * Das Protokol ist nach folgendem Schema aufgebaut:
- * Task,Absender-IP,Absender-Port,Daten
- * 
- * Task beschreibt die Aufgabe:
- * 		Position neuer Knoten:	position -> 0
- * 		Anmelden neuer Knoten: 	new -> 1
- * 		Suche nach Daten:	 	search -> 2
- * 		Stabilization: 			ping -> 3
- * 								pong -> 4
- * 		Austritt eines Knoten:	leave -> 5
- */
+import java.util.TimerTask;
 
-public class Protocol {
+public class Protocol extends TimerTask {
 	// Attribute
-	private int task;
+	private Node respNode;
+	private RingNode node;
+	private Communicator communicator;
 
 	// Konstruktor
-	public Protocol() {
+	public Protocol(RingNode node) {
+		this.node = node;
+		this.communicator = node.getCommunicator();
 	}
 
-	public int evalTask(String msg) {
-		String tmp = msg.split(",")[0];
-		if (tmp.equals("position")) {
-			task = 0;
-		} else if (tmp.equals("new")) {
-			task = 1;
-		} else if (tmp.equals("search")) {
-			task = 2;
-		} else if (tmp.equals("ping")) {
-			task = 3;
-		} else if (tmp.equals("pong")) {
-			task = 4;
-		} else if (tmp.equals("leave")) {
-			task = 5;
+	public void run() {
+		respNode = communicator.connect2SendPing();
+		// wenn der zurück erhaltene Knoten ich selbst bin, dann ist alles ok,
+		// wenn nicht, wird mein nextNode neu gesetzt
+		if (!(respNode.getHash() == node.getHash())) {
+			node.setNextNode(respNode.getIp(), respNode.getPort());
 		}
-		return task;
-	}
-
-	public String getIP(String msg) {
-		return msg.split(",")[1];
-	}
-
-	public int getPort(String msg) {
-		return Integer.parseInt(msg.split(",")[2]);
-	}
-	
-	public int getHash(String msg) {
-		return Integer.parseInt(msg.split(",")[3]);
 	}
 }

@@ -3,8 +3,8 @@ import java.io.Serializable;
 public class Node implements Serializable, Hashable {
 	// Attribute
 	private static final long serialVersionUID = 1L;
-	private String ip;
-	private int port;
+	private final String ip;
+	private final int port;
 	private long hash;
 	// private Hasher hasher;
 
@@ -12,6 +12,7 @@ public class Node implements Serializable, Hashable {
 	public Node(String ip, int port) {
 		this.ip = ip;
 		this.port = port;
+		this.hash = hashThis();
 		// hasher = new Hasher();
 		// this.hash = hasher.NodeToHash(ip, port);
 	}
@@ -29,13 +30,6 @@ public class Node implements Serializable, Hashable {
 		return hash;
 	}
 
-	public void setNode(String ip, int port) {
-		this.ip = ip;
-		this.port = port;
-		// hash = hasher.NodeToHash(ip, port);
-		hash = hashThis();
-	}
-
 	/*
 	 * hashCode() gibt einen int zurück, zusätzlich wird der Wertebereich von
 	 * int (-2147483648 ... 2147483647) auf den Bereich 0 - 4.294.967.295 (long)
@@ -43,7 +37,7 @@ public class Node implements Serializable, Hashable {
 	 */
 	public long hashThis() {
 		String nodeID = ip + port;
-		hash = (long) nodeID.hashCode() + 2147483648L;
-		return hash;
+		//return nodeID.hashCode();
+		return nodeID.hashCode() + 2147483648L;
 	}
 }
