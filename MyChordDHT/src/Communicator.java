@@ -1,4 +1,6 @@
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.PrintStream;
 import java.net.Socket;
@@ -21,8 +23,8 @@ public class Communicator {
 	// und wird dann nur in node gespeichert, also muss auf die jeweils aktuelle
 	// Belegung zugegriffen werden
 	public Node connect2FindNodePosition(String msg) {
-		System.out.println("Starte Position zu IP " + node.nextNode.getIp()
-				+ " auf Port " + node.nextNode.getPort());
+//		System.out.println("Starte Position zu IP " + node.nextNode.getIp()
+//				+ " auf Port " + node.nextNode.getPort());
 		Node responseNode = null;
 		try {
 			Socket conn = new Socket(node.nextNode.getIp(),
@@ -44,8 +46,8 @@ public class Communicator {
 
 	// neuer Knoten meldet sich bei Nachfolger und setzt dessen prevNode
 	public boolean connect2SetPrev() {
-		System.out.println("Starte new zu IP " + node.nextNode.getIp()
-				+ " auf Port " + node.nextNode.getPort());
+//		System.out.println("Starte new zu IP " + node.nextNode.getIp()
+//				+ " auf Port " + node.nextNode.getPort());
 		String msg = "new," + node.getIp() + "," + node.getPort() + ","
 				+ node.getHash();
 		try {
@@ -64,8 +66,8 @@ public class Communicator {
 	}
 
 	public Node connect2SendPing() {
-		System.out.println("Starte Ping zu IP " + node.nextNode.getIp()
-				+ " auf Port " + node.nextNode.getPort());
+//		System.out.println("Starte Ping zu IP " + node.nextNode.getIp()
+//				+ " auf Port " + node.nextNode.getPort());
 		String msg = "ping," + node.getIp() + "," + node.getPort() + ","
 				+ node.getHash();
 		try {
@@ -84,12 +86,12 @@ public class Communicator {
 		}
 		return null;
 	}
-	
+
 	public void connect2SaveData(long hash, String str) {
-		System.out.println("Starte Save zu IP " + node.nextNode.getIp()
-				+ " auf Port " + node.nextNode.getPort());
-		String msg = "save," + node.getIp() + "," + node.getPort() + ","
-				+ hash + "," + str;
+//		System.out.println("Starte Save zu IP " + node.nextNode.getIp()
+//				+ " auf Port " + node.nextNode.getPort());
+		String msg = "save," + node.getIp() + "," + node.getPort() + "," + hash
+				+ "," + str;
 		try {
 			Socket conn = new Socket(node.nextNode.getIp(),
 					node.nextNode.getPort());
@@ -100,5 +102,25 @@ public class Communicator {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
+
+	public String connect2FindData(int searchHash) {
+//		System.out.println("Starte Load zu IP " + node.nextNode.getIp()
+//				+ " auf Port " + node.nextNode.getPort());
+		String msg = "load," + node.getIp() + "," + node.getPort() + ","
+				+ searchHash;
+		try {
+			Socket conn = new Socket(node.nextNode.getIp(),
+					node.nextNode.getPort());
+			PrintStream ps = new PrintStream(conn.getOutputStream());
+			ps.println(msg);
+			BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+			return br.readLine();
+		} catch (UnknownHostException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return null;
 	}
 }

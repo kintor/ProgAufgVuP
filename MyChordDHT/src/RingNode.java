@@ -1,7 +1,6 @@
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Timer;
 import java.util.concurrent.ExecutorService;
@@ -84,8 +83,21 @@ public class RingNode extends Node implements Runnable {
 		}
 	}
 
-	public void loadData(long hash) {
-
+	public String loadData(int searchHash) {
+		String response;
+		if ((getHash() < prevNode.getHash())
+				&& ((searchHash > prevNode.getHash()) || (searchHash < getHash()))) {
+			response = database.get(searchHash);
+		} else if ((searchHash < getHash() && searchHash > prevNode.getHash())) {
+			response = database.get(searchHash);
+		} else {
+			response = communicator.connect2FindData(searchHash);
+		}
+		
+		if (response == null) {
+			response = "Daten nicht gefunden!";
+		}
+		return response;
 	}
 
 	public void saveData(int strHash, String str) {

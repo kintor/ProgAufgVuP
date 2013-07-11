@@ -59,6 +59,8 @@ public class DHT {
 					node.showStatus();
 				} else if (exec.equals("put")) {
 					node.saveData(data.hashCode(), data);
+				} else if (exec.equals("get")) {
+					System.out.println("DAS IST DIE ANTWORT: "+node.loadData(Integer.valueOf(data)));
 				}
 				if (exec.contains("exit")) {
 					node.stopListening();

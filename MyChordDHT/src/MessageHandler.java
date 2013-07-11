@@ -2,6 +2,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.ObjectOutputStream;
+import java.io.PrintStream;
 import java.net.Socket;
 
 public class MessageHandler implements Runnable {
@@ -26,14 +27,14 @@ public class MessageHandler implements Runnable {
 
 	public void run() {
 		try {
-			System.out
-					.println("DEBUG: Verbindung angenommen und uebergeben an Thread: "
-							+ Thread.currentThread());
+//			System.out
+//					.println("DEBUG: Verbindung angenommen und uebergeben an Thread: "
+//							+ Thread.currentThread());
 			outServer = new ObjectOutputStream(conn.getOutputStream());
 			inServer = new BufferedReader(new InputStreamReader(
 					conn.getInputStream()));
 			inMsg = inServer.readLine();
-			System.out.println("DEBUG: Nachricht wurde empfangen: " + inMsg);
+//			System.out.println("DEBUG: Nachricht wurde empfangen: " + inMsg);
 
 			evalTask(inMsg);
 
@@ -56,6 +57,9 @@ public class MessageHandler implements Runnable {
 				break;
 			case 2:
 				System.out.println("Suche nach Daten und laden");
+				evalLoadData(inMsg);
+				PrintStream ps = new PrintStream(conn.getOutputStream());
+				ps.println(node.loadData(dataHash));
 				break;
 			case 3:
 				evalNode(inMsg);
@@ -102,10 +106,17 @@ public class MessageHandler implements Runnable {
 		absenderPort = Integer.valueOf(parts[2]);
 		dataHash = Integer.valueOf(parts[3]);
 		data = parts[4];
-		
+	}
+	
+	private void evalLoadData(String msg) {
+		String[] parts;
+		parts = msg.split(",");
+		absenderIP = parts[1];
+		absenderPort = Integer.valueOf(parts[2]);
+		dataHash = Integer.valueOf(parts[3]);
 	}
 
-	public void evalTask(String msg) {
+	private void evalTask(String msg) {
 		String[] parts;
 		parts = msg.split(",");
 		String taskString = parts[0];
