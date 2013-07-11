@@ -1,4 +1,4 @@
 
 public abstract interface Hashable {
-	long hashThis();
+	int hashThis();
 }

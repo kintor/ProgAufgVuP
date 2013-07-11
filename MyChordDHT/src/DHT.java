@@ -10,9 +10,6 @@ public class DHT {
 	private static String entryIP;
 	private static int entryPort;
 
-	private static BufferedReader in;
-	private static String exec;
-
 	// Main
 	public static void main(String[] args) {
 		selfIP = args[0];
@@ -29,7 +26,7 @@ public class DHT {
 		node.initServerThread();
 		node.startListening();
 		if (args.length > 2) {
-			while(!node.addNode2Ring()) {
+			while (!node.addNode2Ring()) {
 				try {
 					Thread.sleep(2000);
 				} catch (InterruptedException e) {
@@ -38,18 +35,33 @@ public class DHT {
 			}
 		}
 		node.startStabilization();
-		
+
 		// Eingabe fŸr User-Befehle
-		in = new BufferedReader(new InputStreamReader(System.in));
-		exec = "";
+		BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+		String line = "";
+		int index = 0;
+		String exec = "";
+		String data = "";
 
 		while (true) {
 			try {
-				exec = in.readLine();
+				line = in.readLine();
+				index = line.indexOf(" ");
+
+				if (index >= 0) {
+					exec = line.substring(0, index);
+					data = line.substring(index).trim();
+				} else {
+					exec = line;
+				}
+
 				if (exec.equals("status")) {
 					node.showStatus();
+				} else if (exec.equals("put")) {
+					node.saveData(data.hashCode(), data);
 				}
 				if (exec.contains("exit")) {
+					node.stopListening();
 					break;
 				}
 			} catch (IOException e) {

@@ -5,7 +5,7 @@ public class Node implements Serializable, Hashable {
 	private static final long serialVersionUID = 1L;
 	private final String ip;
 	private final int port;
-	private long hash;
+	private int hash;
 	// private Hasher hasher;
 
 	// Konstruktor
@@ -30,14 +30,9 @@ public class Node implements Serializable, Hashable {
 		return hash;
 	}
 
-	/*
-	 * hashCode() gibt einen int zurück, zusätzlich wird der Wertebereich von
-	 * int (-2147483648 ... 2147483647) auf den Bereich 0 - 4.294.967.295 (long)
-	 * verschoben um positive Zahlen zu erhalten
-	 */
-	public long hashThis() {
+	// hashCode() gibt einen int zurück
+	public int hashThis() {
 		String nodeID = ip + port;
-		//return nodeID.hashCode();
-		return nodeID.hashCode() + 2147483648L;
+		return nodeID.hashCode();
 	}
 }

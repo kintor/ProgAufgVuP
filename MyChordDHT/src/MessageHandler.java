@@ -8,7 +8,6 @@ public class MessageHandler implements Runnable {
 	// Attribute
 	private Socket conn;
 	private RingNode node;
-	private Protocol protocol;
 	private BufferedReader inServer;
 	private ObjectOutputStream outServer;
 	private String inMsg;
@@ -16,11 +15,12 @@ public class MessageHandler implements Runnable {
 	private int task;
 	private String absenderIP;
 	private int absenderPort;
-	private long absenderHash;
+	private int absenderHash;
+	private int dataHash;
+	private String data;
 
 	public MessageHandler(Socket conn, RingNode node) {
 		this.conn = conn;
-		this.protocol = node.getProtocol();
 		this.node = node;
 	}
 
@@ -35,30 +35,45 @@ public class MessageHandler implements Runnable {
 			inMsg = inServer.readLine();
 			System.out.println("DEBUG: Nachricht wurde empfangen: " + inMsg);
 
-			evalMsg(inMsg);
+			evalTask(inMsg);
 
 			switch (task) {
 			case 0:
+				evalNode(inMsg);
 				System.out.println("Suche fuer neuen Knoten");
 				outServer.writeObject(node.searchNodePosition(inMsg,
 						absenderIP, absenderPort, absenderHash));
 				break;
 			case 1:
+				evalNode(inMsg);
 				System.out.println("Ein neuer Knoten");
-				node.setPrevNode(getAbsenderIP(), getAbsenderPort());
+				synchronized (node) {
+					if (absenderHash > node.prevNode.getHash()
+							&& absenderHash < node.getHash()) {
+						node.setPrevNode(getAbsenderIP(), getAbsenderPort());
+					}
+				}
 				break;
 			case 2:
-				System.out.println("Suche nach Daten");
+				System.out.println("Suche nach Daten und laden");
 				break;
 			case 3:
+				evalNode(inMsg);
 				System.out.println("Ping");
-				if (node.prevNode == null) {
-					node.setPrevNode(absenderIP, absenderPort);
+				synchronized (node) {
+					if ((node.prevNode == null)
+							|| (absenderHash > node.prevNode.getHash() && absenderHash < node.getHash())
+							// Grenze des Rings
+							|| (node.prevNode.getHash() > node.getHash() && absenderHash > node.prevNode.getHash())) {
+						node.setPrevNode(absenderIP, absenderPort);
+					}
 				}
 				outServer.writeObject(node.prevNode);
 				break;
 			case 4:
-				System.out.println("Pong");
+				evalSaveData(inMsg);
+				System.out.println("Daten abspeichern");
+				node.saveData(dataHash, data);
 				break;
 			case 5:
 				System.out.println("Node leaves");
@@ -72,32 +87,41 @@ public class MessageHandler implements Runnable {
 		}
 	}
 
-	private void evalMsg(String msg) {
+	private void evalNode(String msg) {
 		String[] parts;
 		parts = msg.split(",");
-		task = evalTask(parts[0]);
 		absenderIP = parts[1];
 		absenderPort = Integer.valueOf(parts[2]);
-		absenderHash = Long.valueOf(parts[3]);
-
+		absenderHash = Integer.valueOf(parts[3]);
+	}
+	
+	private void evalSaveData(String msg) {
+		String[] parts;
+		parts = msg.split(",");
+		absenderIP = parts[1];
+		absenderPort = Integer.valueOf(parts[2]);
+		dataHash = Integer.valueOf(parts[3]);
+		data = parts[4];
+		
 	}
 
-	public int evalTask(String taskString) {
-		int task = 0;
+	public void evalTask(String msg) {
+		String[] parts;
+		parts = msg.split(",");
+		String taskString = parts[0];
 		if (taskString.equals("position")) {
 			task = 0;
 		} else if (taskString.equals("new")) {
 			task = 1;
-		} else if (taskString.equals("search")) {
+		} else if (taskString.equals("load")) {
 			task = 2;
 		} else if (taskString.equals("ping")) {
 			task = 3;
-		} else if (taskString.equals("pong")) {
+		} else if (taskString.equals("save")) {
 			task = 4;
 		} else if (taskString.equals("leave")) {
 			task = 5;
 		}
-		return task;
 	}
 
 	public String getAbsenderIP() {
@@ -108,7 +132,7 @@ public class MessageHandler implements Runnable {
 		return absenderPort;
 	}
 
-	public long getAbsenderHash() {
+	public int getAbsenderHash() {
 		return absenderHash;
 	}
 }

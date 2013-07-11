@@ -1,6 +1,8 @@
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.Timer;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -10,6 +12,8 @@ public class RingNode extends Node implements Runnable {
 	private static final long serialVersionUID = 1L;
 	public volatile Node nextNode;
 	public volatile Node prevNode;
+
+	private Hashtable<Integer, String> database;
 
 	private ServerSocket sock;
 	private Socket conn;
@@ -28,6 +32,7 @@ public class RingNode extends Node implements Runnable {
 		timer = new Timer();
 		communicator = new Communicator(this);
 		protocol = new Protocol(this);
+		database = new Hashtable<Integer, String>();
 	}
 
 	// Getter und Setter
@@ -72,18 +77,30 @@ public class RingNode extends Node implements Runnable {
 		System.out.println("    Ip: " + nextNode.getIp());
 		System.out.println("    Port: " + nextNode.getPort());
 		System.out.println("    Hash: " + nextNode.getHash());
+
+		System.out.println("Meine Daten sind: ");
+		for (int key : database.keySet()) {
+			System.out.println("    Key: " + key + " -> " + database.get(key));
+		}
 	}
-	
+
 	public void loadData(long hash) {
-		
+
 	}
-	
-	public void saveDate(String str) {
-		
+
+	public void saveData(int strHash, String str) {
+		if ((getHash() < prevNode.getHash())
+				&& ((strHash > prevNode.getHash()) || (strHash < getHash()))) {
+			database.put(strHash, str);
+		} else if ((strHash < getHash() && strHash > prevNode.getHash())) {
+			database.put(strHash, str);
+		} else {
+			communicator.connect2SaveData(strHash, str);
+		}
 	}
-	
+
 	public void listData() {
-		
+
 	}
 
 	// startet den Timer für das Stabilisierungsprotokol
@@ -140,7 +157,7 @@ public class RingNode extends Node implements Runnable {
 	// ist das Ziel noch nicht erreicht, wird die Anfrage weitergeleitet,
 	// ansonsten der nächste Knoten zurück geschickt
 	public synchronized Node searchNodePosition(String req, String ip,
-			int port, long hash) {
+			int port, int hash) {
 		/*
 		 * System.out.println("DEBUG: " + getHash()); // 7
 		 * System.out.println("DEBUG: " + hash); // 9
@@ -193,7 +210,7 @@ public class RingNode extends Node implements Runnable {
 		if (tmpNode == null) {
 			return false;
 		}
-		
+
 		setNextNode(tmpNode.getIp(), tmpNode.getPort());
 
 		// sage dem nächsten Knoten seinen neuer Vorgänger
@@ -203,7 +220,7 @@ public class RingNode extends Node implements Runnable {
 
 		// spätere Möglichkeit die Finger-Table zu erstellen:
 		// refreshTable();
-		
+
 		return true;
 	}
 }

@@ -8,10 +8,6 @@ public class Communicator {
 	// Attribute
 	private RingNode node;
 
-	private Socket conn;
-	private PrintStream ps;
-	private ObjectInputStream ois;
-
 	// Konstruktor
 	public Communicator(RingNode node) {
 		this.node = node;
@@ -29,10 +25,11 @@ public class Communicator {
 				+ " auf Port " + node.nextNode.getPort());
 		Node responseNode = null;
 		try {
-			conn = new Socket(node.nextNode.getIp(), node.nextNode.getPort());
-			ps = new PrintStream(conn.getOutputStream());
+			Socket conn = new Socket(node.nextNode.getIp(),
+					node.nextNode.getPort());
+			PrintStream ps = new PrintStream(conn.getOutputStream());
 			ps.println(msg);
-			ois = new ObjectInputStream(conn.getInputStream());
+			ObjectInputStream ois = new ObjectInputStream(conn.getInputStream());
 			responseNode = (Node) ois.readObject();
 			// conn.close();
 		} catch (UnknownHostException e) {
@@ -45,14 +42,16 @@ public class Communicator {
 		return responseNode;
 	}
 
+	// neuer Knoten meldet sich bei Nachfolger und setzt dessen prevNode
 	public boolean connect2SetPrev() {
 		System.out.println("Starte new zu IP " + node.nextNode.getIp()
 				+ " auf Port " + node.nextNode.getPort());
 		String msg = "new," + node.getIp() + "," + node.getPort() + ","
 				+ node.getHash();
 		try {
-			conn = new Socket(node.nextNode.getIp(), node.nextNode.getPort());
-			ps = new PrintStream(conn.getOutputStream());
+			Socket conn = new Socket(node.nextNode.getIp(),
+					node.nextNode.getPort());
+			PrintStream ps = new PrintStream(conn.getOutputStream());
 			ps.println(msg);
 
 			return true;
@@ -63,16 +62,18 @@ public class Communicator {
 		}
 		return false;
 	}
-	
+
 	public Node connect2SendPing() {
 		System.out.println("Starte Ping zu IP " + node.nextNode.getIp()
 				+ " auf Port " + node.nextNode.getPort());
-		String msg = "ping," + node.getIp() + "," + node.getPort() + "," + node.getHash();
+		String msg = "ping," + node.getIp() + "," + node.getPort() + ","
+				+ node.getHash();
 		try {
-			conn = new Socket(node.nextNode.getIp(), node.nextNode.getPort());
-			ps = new PrintStream(conn.getOutputStream());
+			Socket conn = new Socket(node.nextNode.getIp(),
+					node.nextNode.getPort());
+			PrintStream ps = new PrintStream(conn.getOutputStream());
 			ps.println(msg);
-			ois = new ObjectInputStream(conn.getInputStream());
+			ObjectInputStream ois = new ObjectInputStream(conn.getInputStream());
 			return (Node) ois.readObject();
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
@@ -82,5 +83,22 @@ public class Communicator {
 			e.printStackTrace();
 		}
 		return null;
+	}
+	
+	public void connect2SaveData(long hash, String str) {
+		System.out.println("Starte Save zu IP " + node.nextNode.getIp()
+				+ " auf Port " + node.nextNode.getPort());
+		String msg = "save," + node.getIp() + "," + node.getPort() + ","
+				+ hash + "," + str;
+		try {
+			Socket conn = new Socket(node.nextNode.getIp(),
+					node.nextNode.getPort());
+			PrintStream ps = new PrintStream(conn.getOutputStream());
+			ps.println(msg);
+		} catch (UnknownHostException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 }
