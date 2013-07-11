@@ -55,6 +55,7 @@ public class RingNode extends Node implements Runnable {
 		System.out.println("Mein Vorgaenger ist jetzt " + ip + ":" + port);
 	}
 
+	// Funktionen für die User-Interaktion
 	public void showStatus() {
 		if (prevNode != null) {
 			System.out.println("Mein Vorgaenger: ");
@@ -71,6 +72,23 @@ public class RingNode extends Node implements Runnable {
 		System.out.println("    Ip: " + nextNode.getIp());
 		System.out.println("    Port: " + nextNode.getPort());
 		System.out.println("    Hash: " + nextNode.getHash());
+	}
+	
+	public void loadData(long hash) {
+		
+	}
+	
+	public void saveDate(String str) {
+		
+	}
+	
+	public void listData() {
+		
+	}
+
+	// startet den Timer für das Stabilisierungsprotokol
+	public void startStabilization() {
+		timer.schedule(protocol, 2000, 5000);
 	}
 
 	/*
@@ -121,7 +139,8 @@ public class RingNode extends Node implements Runnable {
 
 	// ist das Ziel noch nicht erreicht, wird die Anfrage weitergeleitet,
 	// ansonsten der nächste Knoten zurück geschickt
-	public synchronized Node searchNodePosition(String req, String ip, int port, long hash) {
+	public synchronized Node searchNodePosition(String req, String ip,
+			int port, long hash) {
 		/*
 		 * System.out.println("DEBUG: " + getHash()); // 7
 		 * System.out.println("DEBUG: " + hash); // 9
@@ -168,9 +187,13 @@ public class RingNode extends Node implements Runnable {
 	 * wird beim Start des Nodes aufgerufen und die Position im Ring wird
 	 * ermittelt
 	 */
-	public void searchPosition() {
+	public boolean addNode2Ring() {
 		Node tmpNode = communicator.connect2FindNodePosition("position,"
 				+ getIp() + "," + getPort() + "," + getHash());
+		if (tmpNode == null) {
+			return false;
+		}
+		
 		setNextNode(tmpNode.getIp(), tmpNode.getPort());
 
 		// sage dem nächsten Knoten seinen neuer Vorgänger
@@ -180,9 +203,7 @@ public class RingNode extends Node implements Runnable {
 
 		// spätere Möglichkeit die Finger-Table zu erstellen:
 		// refreshTable();
-	}
-	
-	public void startStabilization() {
-		timer.schedule(protocol, 2000, 5000);
+		
+		return true;
 	}
 }

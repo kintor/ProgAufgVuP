@@ -28,10 +28,16 @@ public class DHT {
 		node = new RingNode(selfIP, selfPort, entryIP, entryPort);
 		node.initServerThread();
 		node.startListening();
-		node.startStabilization();
 		if (args.length > 2) {
-			node.searchPosition();
+			while(!node.addNode2Ring()) {
+				try {
+					Thread.sleep(2000);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
 		}
+		node.startStabilization();
 		
 		// Eingabe für User-Befehle
 		in = new BufferedReader(new InputStreamReader(System.in));
