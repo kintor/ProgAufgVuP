@@ -26,7 +26,7 @@ public class Node implements Serializable, Hashable {
 		return port;
 	}
 
-	public long getHash() {
+	public int getHash() {
 		return hash;
 	}
 

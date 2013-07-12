@@ -1,6 +1,7 @@
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Timer;
 import java.util.concurrent.ExecutorService;
@@ -12,7 +13,7 @@ public class RingNode extends Node implements Runnable {
 	public volatile Node nextNode;
 	public volatile Node prevNode;
 
-	private Hashtable<Integer, String> database;
+	private volatile Hashtable<Integer, String> database;
 
 	private ServerSocket sock;
 	private Socket conn;
@@ -84,7 +85,7 @@ public class RingNode extends Node implements Runnable {
 	}
 
 	public String loadData(int searchHash) {
-		String response;
+		String response = "";
 		if ((getHash() < prevNode.getHash())
 				&& ((searchHash > prevNode.getHash()) || (searchHash < getHash()))) {
 			response = database.get(searchHash);
@@ -93,7 +94,7 @@ public class RingNode extends Node implements Runnable {
 		} else {
 			response = communicator.connect2FindData(searchHash);
 		}
-		
+
 		if (response == null) {
 			response = "Daten nicht gefunden!";
 		}
@@ -101,6 +102,13 @@ public class RingNode extends Node implements Runnable {
 	}
 
 	public void saveData(int strHash, String str) {
+		while (prevNode == null) {
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
 		if ((getHash() < prevNode.getHash())
 				&& ((strHash > prevNode.getHash()) || (strHash < getHash()))) {
 			database.put(strHash, str);
@@ -111,8 +119,17 @@ public class RingNode extends Node implements Runnable {
 		}
 	}
 
-	public void listData() {
-
+	public ArrayList<String> listData(String absenderIp, int absenderPort,
+			int absenderHash) {
+		ArrayList<String> list = new ArrayList<String>();
+		if (!(absenderHash == nextNode.getHash())) {
+			list = communicator.connect2GetAll(absenderIp, absenderPort,
+					absenderHash);
+		}
+		for (int key : database.keySet()) {
+			list.add(database.get(key));
+		}
+		return list;
 	}
 
 	// startet den Timer für das Stabilisierungsprotokol
@@ -225,8 +242,16 @@ public class RingNode extends Node implements Runnable {
 
 		setNextNode(tmpNode.getIp(), tmpNode.getPort());
 
-		// sage dem nächsten Knoten seinen neuer Vorgänger
-		communicator.connect2SetPrev();
+		// sage dem nächsten Knoten seinen neuer Vorgänger und bekomme
+		// gegebenenfalls zu verwaltene Daten
+		String data = communicator.connect2SetPrev();
+		if (data != null) {
+			data = data.substring(1);
+			String[] dataArray = data.split(",");
+			for (int i = 0; i < dataArray.length; i = i + 2) {
+				database.put(Integer.valueOf(dataArray[i]), dataArray[i + 1]);
+			}
+		}
 
 		// startStabilization();
 
@@ -234,5 +259,23 @@ public class RingNode extends Node implements Runnable {
 		// refreshTable();
 
 		return true;
+	}
+
+	public synchronized String passData2Prev() {
+		String msg = "";
+		int[] keys = new int[database.size()];
+		int i = 0;
+		for (int key : database.keySet()) {
+			// das erste Komma wird nach dem Empfangen entfernt
+			if (key < prevNode.getHash()) {
+				msg = msg + "," + key + "," + database.get(key);
+				keys[i] = key;
+				i++;
+			}
+		}
+		for (int j = 0; j < i; j++) {
+			database.remove(keys[j]);
+		}
+		return msg;
 	}
 }

@@ -13,11 +13,13 @@ public class Protocol extends TimerTask {
 	}
 
 	public void run() {
-		respNode = communicator.connect2SendPing();
-		// wenn der zurück erhaltene Knoten ich selbst bin, dann ist alles ok,
-		// wenn nicht, wird mein nextNode neu gesetzt
-		if (!(respNode.getHash() == node.getHash())) {
-			node.setNextNode(respNode.getIp(), respNode.getPort());
+		if (node.nextNode.getHash() != node.getHash()) {
+			respNode = communicator.connect2SendPing();
+			// wenn der zurück erhaltene Knoten ich selbst bin, dann ist alles
+			// ok, wenn nicht, wird mein nextNode neu gesetzt
+			if (!(respNode.getHash() == node.getHash())) {
+				node.setNextNode(respNode.getIp(), respNode.getPort());
+			}
 		}
 	}
 }

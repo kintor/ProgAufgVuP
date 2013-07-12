@@ -1,6 +1,8 @@
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.Iterator;
 
 public class DHT {
 	// Attribute
@@ -60,7 +62,15 @@ public class DHT {
 				} else if (exec.equals("put")) {
 					node.saveData(data.hashCode(), data);
 				} else if (exec.equals("get")) {
-					System.out.println("DAS IST DIE ANTWORT: "+node.loadData(Integer.valueOf(data)));
+					System.out.println("DAS IST DIE ANTWORT: "
+							+ node.loadData(Integer.valueOf(data)));
+				} else if (exec.equals("list")) {
+					ArrayList<String> list = node.listData(node.getIp(),
+							node.getPort(), node.getHash());
+					System.out.println("Die im Ring gespeicherten Werte sind:");
+					for (Iterator<String> i = list.iterator(); i.hasNext();) {
+						System.out.println(i.next());
+					}
 				}
 				if (exec.contains("exit")) {
 					node.stopListening();
