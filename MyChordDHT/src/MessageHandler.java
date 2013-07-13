@@ -3,6 +3,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 public class MessageHandler implements Runnable {
 	// Attribute
@@ -26,33 +28,39 @@ public class MessageHandler implements Runnable {
 
 	public void run() {
 		try {
-			// System.out
-			// .println("DEBUG: Verbindung angenommen und uebergeben an Thread: "
-			// + Thread.currentThread());
+			System.err.println(new SimpleDateFormat("hh:mm:ss").format(new Date())
+					+ "    " + Thread.currentThread() + "    "
+					+ "Eine Verbindung angenommen und an aktuellen Thread uebergeben");
 			outServer = new ObjectOutputStream(conn.getOutputStream());
 			inServer = new BufferedReader(new InputStreamReader(
 					conn.getInputStream(), "UTF-8"));
 			inMsg = inServer.readLine();
-			// System.out.println("DEBUG: Nachricht wurde empfangen: " + inMsg);
+			System.err.println(new SimpleDateFormat("hh:mm:ss").format(new Date())
+					+ "    " + Thread.currentThread() + "    "
+					+ "Folgende Nachricht wurde vom Server empfangen: " + inMsg);
 
 			evalTask(inMsg);
 
 			switch (task) {
 			case 0:
 				evalNode(inMsg);
-				System.out.println("Suche fuer neuen Knoten");
+				System.err.println(new SimpleDateFormat("hh:mm:ss").format(new Date())
+						+ "    " + Thread.currentThread() + "    "
+						+ "Die Aufgabe ist: Suche neue Knotenposition.");
 				outServer.writeObject(node.searchNodePosition(inMsg,
 						absenderIP, absenderPort, absenderHash));
 				break;
 			case 1:
 				evalNode(inMsg);
-				System.out.println("Ein neuer Knoten");
+				System.err.println(new SimpleDateFormat("hh:mm:ss").format(new Date())
+						+ "    " + Thread.currentThread() + "    "
+						+ "Die Aufgabe ist: Fuege den neuen Knoten (bei die als Vorgaenger) im Ring ein.");
 				synchronized (node) {
 					if (node.prevNode == null
 							|| (absenderHash > node.prevNode.getHash() && absenderHash < node
 									.getHash())
 							|| (node.prevNode.getHash() > node.getHash() && absenderHash > node.prevNode.getHash())) {
-						node.setPrevNode(getAbsenderIP(), getAbsenderPort());
+						node.setPrevNode(absenderIP, absenderPort);
 
 						String msg = node.passData2Prev();
 						if (msg.equals("")) {
@@ -62,23 +70,34 @@ public class MessageHandler implements Runnable {
 						}
 					}
 				}
-				System.out.println("DEBUG: Verbindung wird geschlossen.");
 				break;
 			case 2:
-				System.out.println("Suche nach Daten und laden");
-				evalLoadData(inMsg);
-				/*
-				 * PrintStream ps = new PrintStream(conn.getOutputStream(),
-				 * false, "UTF-8"); String respMsg = node.loadData(dataHash);
-				 * for (byte b : respMsg.getBytes()) { System.out.println(b); }
-				 * System.out.println("IM HANDLER: " + respMsg);
-				 * ps.println(respMsg);
-				 */
-				outServer.writeObject(node.loadData(dataHash));
+				evalSaveData(inMsg);
+				System.err.println(new SimpleDateFormat("hh:mm:ss").format(new Date())
+						+ "    " + Thread.currentThread() + "    "
+						+ "Die Aufgabe ist: Speicher die Daten auf dem richtigen Knoten ab.");
+				node.saveData(dataHash, data);
 				break;
 			case 3:
+				evalLoadData(inMsg);
+				System.err.println(new SimpleDateFormat("hh:mm:ss").format(new Date())
+						+ "    " + Thread.currentThread() + "    "
+						+ "Die Aufgabe ist: Suche und lade die angeforderten Daten.");
+				outServer.writeObject(node.loadData(dataHash));
+				break;
+			case 4:
 				evalNode(inMsg);
-				System.out.println("Ping");
+				System.err.println(new SimpleDateFormat("hh:mm:ss").format(new Date())
+						+ "    " + Thread.currentThread() + "    "
+						+ "Die Aufgabe ist: Sammel alle gespeicherten Daten ein.");
+				outServer.writeObject(node.listData(absenderIP, absenderPort,
+						absenderHash));
+				break;
+			case 5:
+				evalNode(inMsg);
+				System.err.println(new SimpleDateFormat("hh:mm:ss").format(new Date())
+						+ "    " + Thread.currentThread() + "    "
+						+ "Die Aufgabe ist: Verarbeite Ping des Stabilisierungsprotokoll");
 				synchronized (node) {
 					if ((node.prevNode == null)
 							|| (absenderHash > node.prevNode.getHash() && absenderHash < node
@@ -91,19 +110,11 @@ public class MessageHandler implements Runnable {
 				}
 				outServer.writeObject(node.prevNode);
 				break;
-			case 4:
-				evalSaveData(inMsg);
-				System.out.println("Daten abspeichern");
-				node.saveData(dataHash, data);
-				break;
-			case 5:
-				System.out.println("Liste aller Daten");
-				evalNode(inMsg);
-				outServer.writeObject(node.listData(absenderIP, absenderPort,
-						absenderHash));
-				break;
 			}
 
+			System.err.println(new SimpleDateFormat("hh:mm:ss").format(new Date())
+					+ "    " + Thread.currentThread() + "    "
+					+ "Die Verbindung im aktuellen Thread wird wieder geschlossen.");
 			conn.close();
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -143,26 +154,14 @@ public class MessageHandler implements Runnable {
 			task = 0;
 		} else if (taskString.equals("new")) {
 			task = 1;
-		} else if (taskString.equals("load")) {
-			task = 2;
-		} else if (taskString.equals("ping")) {
-			task = 3;
 		} else if (taskString.equals("save")) {
-			task = 4;
+			task = 2;
+		} else if (taskString.equals("load")) {
+			task = 3;
 		} else if (taskString.equals("list")) {
+			task = 4;
+		} else if (taskString.equals("ping")) {
 			task = 5;
 		}
-	}
-
-	public String getAbsenderIP() {
-		return absenderIP;
-	}
-
-	public int getAbsenderPort() {
-		return absenderPort;
-	}
-
-	public int getAbsenderHash() {
-		return absenderHash;
 	}
 }

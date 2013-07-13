@@ -1,11 +1,11 @@
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.PrintStream;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.List;
+import java.util.Date;
 
 public class Communicator {
 	// Attribute
@@ -24,8 +24,13 @@ public class Communicator {
 	// und wird dann nur in node gespeichert, also muss auf die jeweils aktuelle
 	// Belegung zugegriffen werden
 	public Node connect2FindNodePosition(String msg) {
-		// System.out.println("Starte Position zu IP " + node.nextNode.getIp()
-		// + " auf Port " + node.nextNode.getPort());
+		System.err
+				.println(new SimpleDateFormat("hh:mm:ss").format(new Date())
+						+ "    "
+						+ Thread.currentThread()
+						+ "    "
+						+ "Fuer die Positionssuche wird eine neue Verbindung aufgebaut nach: "
+						+ node.nextNode.getIp() + ":" + node.nextNode.getPort());
 		Node responseNode = null;
 		try {
 			Socket conn = new Socket(node.nextNode.getIp(),
@@ -48,8 +53,13 @@ public class Communicator {
 	// neuer Knoten meldet sich bei Nachfolger setzt dessen prevNode und
 	// bekommt von diesem zu verwaltende Daten als Liste geschickt
 	public String connect2SetPrev() {
-		// System.out.println("Starte new zu IP " + node.nextNode.getIp()
-		// + " auf Port " + node.nextNode.getPort());
+		System.err
+				.println(new SimpleDateFormat("hh:mm:ss").format(new Date())
+						+ "    "
+						+ Thread.currentThread()
+						+ "    "
+						+ "Fuer das Einfuegen des neuen Knotens wird eine neue Verbindung aufgebaut nach: "
+						+ node.nextNode.getIp() + ":" + node.nextNode.getPort());
 		String msg = "new," + node.getIp() + "," + node.getPort() + ","
 				+ node.getHash();
 		try {
@@ -57,10 +67,10 @@ public class Communicator {
 					node.nextNode.getPort());
 			PrintStream ps = new PrintStream(conn.getOutputStream());
 			ps.println(msg);
-			
+
 			// Daten kommen als CSV-String
 			ObjectInputStream ois = new ObjectInputStream(conn.getInputStream());
-			
+
 			String data = (String) ois.readObject();
 			if (data.equals("noData")) {
 				data = null;
@@ -77,8 +87,10 @@ public class Communicator {
 	}
 
 	public Node connect2SendPing() {
-		// System.out.println("Starte Ping zu IP " + node.nextNode.getIp()
-		// + " auf Port " + node.nextNode.getPort());
+		System.err.println(new SimpleDateFormat("hh:mm:ss").format(new Date())
+				+ "    " + Thread.currentThread() + "    "
+				+ "Fuer den Ping wird eine neue Verbindung aufgebaut nach: "
+				+ node.nextNode.getIp() + ":" + node.nextNode.getPort());
 		String msg = "ping," + node.getIp() + "," + node.getPort() + ","
 				+ node.getHash();
 		try {
@@ -99,8 +111,13 @@ public class Communicator {
 	}
 
 	public void connect2SaveData(long hash, String str) {
-		// System.out.println("Starte Save zu IP " + node.nextNode.getIp()
-		// + " auf Port " + node.nextNode.getPort());
+		System.err
+				.println(new SimpleDateFormat("hh:mm:ss").format(new Date())
+						+ "    "
+						+ Thread.currentThread()
+						+ "    "
+						+ "Fuer das Speichern von Daten wird eine neue Verbindung aufgebaut nach: "
+						+ node.nextNode.getIp() + ":" + node.nextNode.getPort());
 		String msg = "save," + node.getIp() + "," + node.getPort() + "," + hash
 				+ "," + str;
 		try {
@@ -116,8 +133,13 @@ public class Communicator {
 	}
 
 	public String connect2FindData(int searchHash) {
-		// System.out.println("Starte Load zu IP " + node.nextNode.getIp()
-		// + " auf Port " + node.nextNode.getPort());
+		System.err
+				.println(new SimpleDateFormat("hh:mm:ss").format(new Date())
+						+ "    "
+						+ Thread.currentThread()
+						+ "    "
+						+ "Fuer das Laden von Daten wird eine neue Verbindung aufgebaut nach: "
+						+ node.nextNode.getIp() + ":" + node.nextNode.getPort());
 		String msg = "load," + node.getIp() + "," + node.getPort() + ","
 				+ searchHash;
 		try {
@@ -148,6 +170,13 @@ public class Communicator {
 
 	public ArrayList<String> connect2GetAll(String absenderIp,
 			int absenderPort, int absenderHash) {
+		System.err
+				.println(new SimpleDateFormat("hh:mm:ss").format(new Date())
+						+ "    "
+						+ Thread.currentThread()
+						+ "    "
+						+ "Fuer das Einsammeln aller Daten wird eine neue Verbindung aufgebaut nach: "
+						+ node.nextNode.getIp() + ":" + node.nextNode.getPort());
 		String msg = "list," + absenderIp + "," + absenderPort + ","
 				+ absenderHash;
 		try {

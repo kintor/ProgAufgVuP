@@ -1,7 +1,9 @@
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Iterator;
 
 public class DHT {
@@ -14,6 +16,9 @@ public class DHT {
 
 	// Main
 	public static void main(String[] args) {
+		System.err.println(new SimpleDateFormat("hh:mm:ss").format(new Date())
+				+ "    " + Thread.currentThread() + "    "
+				+ "Der Prozess wurde gestartet.");
 		selfIP = args[0];
 		selfPort = Integer.parseInt(args[1]);
 		if (args.length > 2) {
@@ -45,6 +50,21 @@ public class DHT {
 		String exec = "";
 		String data = "";
 
+		System.out.println("Der Knoten wurde gestartet.");
+		System.out.println("Sobald er vollständig im Ring integriert ist,"
+				+ "koennen Sie Daten speichern.");
+		System.out.println("Folgende Befehle koennen Sie absetzen:");
+		System.out.println("put <Stringkette> ->"
+				+ "Speichert den String auf dem entsprechenden Knoten.");
+		System.out.println("get <Hashwert> ->"
+				+ "Laedt die zu dem Hashwert gespeicherten Daten.");
+		System.out.println("list ->"
+				+ "Zeigt alle im Ring gespeicherten Daten an.");
+		System.out
+				.println("status ->"
+						+ "Zeigt Vorgaenger, Nachfolger sowie die eigenen Werte des Knoten an.");
+		System.out.println("");
+
 		while (true) {
 			try {
 				line = in.readLine();
@@ -61,8 +81,9 @@ public class DHT {
 					node.showStatus();
 				} else if (exec.equals("put")) {
 					node.saveData(data.hashCode(), data);
+					System.out.println("Die Daten wurden gespeichert.");
 				} else if (exec.equals("get")) {
-					System.out.println("DAS IST DIE ANTWORT: "
+					System.out.println("Die angefragten Daten sind: "
 							+ node.loadData(Integer.valueOf(data)));
 				} else if (exec.equals("list")) {
 					ArrayList<String> list = node.listData(node.getIp(),

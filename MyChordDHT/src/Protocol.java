@@ -17,7 +17,7 @@ public class Protocol extends TimerTask {
 			respNode = communicator.connect2SendPing();
 			// wenn der zurück erhaltene Knoten ich selbst bin, dann ist alles
 			// ok, wenn nicht, wird mein nextNode neu gesetzt
-			if (!(respNode.getHash() == node.getHash())) {
+			if (respNode.getHash() != node.getHash()) {
 				node.setNextNode(respNode.getIp(), respNode.getPort());
 			}
 		}

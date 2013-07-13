@@ -1,7 +1,9 @@
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Hashtable;
 import java.util.Timer;
 import java.util.concurrent.ExecutorService;
@@ -33,6 +35,9 @@ public class RingNode extends Node implements Runnable {
 		communicator = new Communicator(this);
 		protocol = new Protocol(this);
 		database = new Hashtable<Integer, String>();
+		System.err.println(new SimpleDateFormat("hh:mm:ss").format(new Date())
+				+ "    " + Thread.currentThread() + "    "
+				+ "Der Knoten wurde initialisiert.");
 	}
 
 	// Getter und Setter
@@ -51,13 +56,17 @@ public class RingNode extends Node implements Runnable {
 	// setzt die Werte fŸr nextNode
 	public synchronized void setNextNode(String ip, int port) {
 		nextNode = new Node(ip, port);
-		System.out.println("Mein Nachfolger ist jetzt " + ip + ":" + port);
+		System.err.println(new SimpleDateFormat("hh:mm:ss").format(new Date())
+				+ "    " + Thread.currentThread() + "    "
+				+ "Mein Nachfolger ist jetzt " + ip + ":" + port);
 	}
 
 	// setzt die Werte fŸr prevNode
 	public synchronized void setPrevNode(String ip, int port) {
 		prevNode = new Node(ip, port);
-		System.out.println("Mein Vorgaenger ist jetzt " + ip + ":" + port);
+		System.err.println(new SimpleDateFormat("hh:mm:ss").format(new Date())
+				+ "    " + Thread.currentThread() + "    "
+				+ "Mein Vorgaenger ist jetzt " + ip + ":" + port);
 	}
 
 	// Funktionen fŸr die User-Interaktion
@@ -79,9 +88,15 @@ public class RingNode extends Node implements Runnable {
 		System.out.println("    Hash: " + nextNode.getHash());
 
 		System.out.println("Meine Daten sind: ");
-		for (int key : database.keySet()) {
-			System.out.println("    Key: " + key + " -> " + database.get(key));
+		if (database.isEmpty()) {
+			System.out.println("    Es sind keine Daten gespeichert.");
+		} else {
+			for (int key : database.keySet()) {
+				System.out.println("    Key: " + key + " -> "
+						+ database.get(key));
+			}
 		}
+		System.out.println("");
 	}
 
 	public String loadData(int searchHash) {
@@ -122,7 +137,7 @@ public class RingNode extends Node implements Runnable {
 	public ArrayList<String> listData(String absenderIp, int absenderPort,
 			int absenderHash) {
 		ArrayList<String> list = new ArrayList<String>();
-		if (!(absenderHash == nextNode.getHash())) {
+		if (absenderHash != nextNode.getHash()) {
 			list = communicator.connect2GetAll(absenderIp, absenderPort,
 					absenderHash);
 		}
@@ -145,16 +160,19 @@ public class RingNode extends Node implements Runnable {
 		try {
 			msgHandlerPool = Executors.newCachedThreadPool();
 			sock = new ServerSocket(getPort());
-			System.out.println("DEBUG: Horche auf Port: " + getPort());
+			System.err.println(new SimpleDateFormat("hh:mm:ss")
+					.format(new Date())
+					+ "    "
+					+ Thread.currentThread()
+					+ "    "
+					+ "Der Server wurder auf Port "
+					+ getPort()
+					+ " gestartet.");
 			while (!serverStopped) {
 				conn = sock.accept();
 				msgHandlerPool.execute(new MessageHandler(conn, this));
 			}
 		} catch (IOException e) {
-			if (serverStopped) {
-				System.out.println("DEBUG: Server ist gestoppt auf Port: "
-						+ getPort());
-			}
 			e.printStackTrace();
 		}
 	}
@@ -187,18 +205,20 @@ public class RingNode extends Node implements Runnable {
 	// ansonsten der nŠchste Knoten zurŸck geschickt
 	public synchronized Node searchNodePosition(String req, String ip,
 			int port, int hash) {
-		/*
-		 * System.out.println("DEBUG: " + getHash()); // 7
-		 * System.out.println("DEBUG: " + hash); // 9
-		 * System.out.println("DEBUG: " + nextNode.getHash()); // 3
-		 */
+
 		if (getHash() == nextNode.getHash()) {
 			// besteht der Ring derzeit aus nur einem Node, so wird dieser
 			// zurŸck geliefert und der anfragende Knoten wird zum nextNode
 			// self: 7 - search: 9 - next: 7
 			Node tmpNode = nextNode;
 			setNextNode(ip, port);
-			System.out.println("antworte mit Knoten");
+			System.err
+					.println(new SimpleDateFormat("hh:mm:ss")
+							.format(new Date())
+							+ "    "
+							+ Thread.currentThread()
+							+ "    "
+							+ "Position wurde gefunden, nextNode wird zurueck geschickt.");
 			return tmpNode;
 		} else if (getHash() > nextNode.getHash()) {
 			// Grenze im Wertbereich des Rings
@@ -208,31 +228,53 @@ public class RingNode extends Node implements Runnable {
 				// gesuchter Key liegt im Grenzbereich
 				// self: 7 - search: 9
 				// oder:Êsearch: 2 - next: 3
-				System.out.println("antworte mit Knoten");
+				System.err
+						.println(new SimpleDateFormat("hh:mm:ss")
+								.format(new Date())
+								+ "    "
+								+ Thread.currentThread()
+								+ "    "
+								+ "Position wurde gefunden, nextNode wird zurueck geschickt.");
 				return nextNode;
 			} else {
 				// gesuchter Key liegt hinter dem nextNode, also weiterleiten
 				// self: 7 - search: 5 - next: 3
-				System.out.println("weiterleiten");
+				System.err
+						.println(new SimpleDateFormat("hh:mm:ss")
+								.format(new Date())
+								+ "    "
+								+ Thread.currentThread()
+								+ "    "
+								+ "Position wurde noch nicht gefunden, Anfrage wird weitergeleitet.");
 				return communicator.connect2FindNodePosition(req);
 			}
 		} else if ((getHash() < hash) && (hash < nextNode.getHash())) {
 			// gesuchter Key liegt zwischen mir und nextNode, also liefere
 			// nextNode zurŸck
 			// self: 7 - search: 9 - next: 13
-			System.out.println("antworte mit Knoten");
+			System.err
+					.println(new SimpleDateFormat("hh:mm:ss")
+							.format(new Date())
+							+ "    "
+							+ Thread.currentThread()
+							+ "    "
+							+ "Position wurde gefunden, nextNode wird zurueck geschickt.");
 			return nextNode;
 		} else {
 			// gesuchter Key liegt hinter dem nextNode, also weiterleiten
-			System.out.println("weiterleiten");
+			System.err
+					.println(new SimpleDateFormat("hh:mm:ss")
+							.format(new Date())
+							+ "    "
+							+ Thread.currentThread()
+							+ "    "
+							+ "Position wurde noch nicht gefunden, Anfrage wird weitergeleitet.");
 			return communicator.connect2FindNodePosition(req);
 		}
 	}
 
-	/*
-	 * wird beim Start des Nodes aufgerufen und die Position im Ring wird
-	 * ermittelt
-	 */
+	// wird beim Start des Nodes aufgerufen und die Position im Ring wird
+	// ermittelt
 	public boolean addNode2Ring() {
 		Node tmpNode = communicator.connect2FindNodePosition("position,"
 				+ getIp() + "," + getPort() + "," + getHash());
@@ -243,7 +285,7 @@ public class RingNode extends Node implements Runnable {
 		setNextNode(tmpNode.getIp(), tmpNode.getPort());
 
 		// sage dem nŠchsten Knoten seinen neuer VorgŠnger und bekomme
-		// gegebenenfalls zu verwaltene Daten
+		// gegebenenfalls zu verwaltene Daten (als CSV) und speicher diese
 		String data = communicator.connect2SetPrev();
 		if (data != null) {
 			data = data.substring(1);
@@ -253,14 +295,14 @@ public class RingNode extends Node implements Runnable {
 			}
 		}
 
-		// startStabilization();
-
 		// spŠtere Mšglichkeit die Finger-Table zu erstellen:
 		// refreshTable();
 
 		return true;
 	}
 
+	// Daten, fŸr die der neue VorgŠnger zustŠndig ist, werden zu diesem
+	// geleitet und hier gelšscht
 	public synchronized String passData2Prev() {
 		String msg = "";
 		int[] keys = new int[database.size()];
