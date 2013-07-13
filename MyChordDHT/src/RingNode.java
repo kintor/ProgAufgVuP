@@ -104,8 +104,10 @@ public class RingNode extends Node implements Runnable {
 		if ((getHash() < prevNode.getHash())
 				&& ((searchHash > prevNode.getHash()) || (searchHash < getHash()))) {
 			response = database.get(searchHash);
+			response = response + "," + getIp() + "," + getPort() + "," + getHash();
 		} else if ((searchHash < getHash() && searchHash > prevNode.getHash())) {
 			response = database.get(searchHash);
+			response = response + "," + getIp() + "," + getPort() + "," + getHash();
 		} else {
 			response = communicator.connect2FindData(searchHash);
 		}
@@ -116,7 +118,7 @@ public class RingNode extends Node implements Runnable {
 		return response;
 	}
 
-	public void saveData(int strHash, String str) {
+	public Node saveData(int strHash, String str) {
 		while (prevNode == null) {
 			try {
 				Thread.sleep(1000);
@@ -124,13 +126,16 @@ public class RingNode extends Node implements Runnable {
 				e.printStackTrace();
 			}
 		}
+		Node tmpNode = new Node(getIp(), getPort());
 		if ((getHash() < prevNode.getHash())
 				&& ((strHash > prevNode.getHash()) || (strHash < getHash()))) {
 			database.put(strHash, str);
+			return tmpNode;
 		} else if ((strHash < getHash() && strHash > prevNode.getHash())) {
 			database.put(strHash, str);
+			return tmpNode;
 		} else {
-			communicator.connect2SaveData(strHash, str);
+			return communicator.connect2SaveData(strHash, str);
 		}
 	}
 
@@ -142,6 +147,7 @@ public class RingNode extends Node implements Runnable {
 					absenderHash);
 		}
 		for (int key : database.keySet()) {
+			list.add(String.valueOf(key));
 			list.add(database.get(key));
 		}
 		return list;

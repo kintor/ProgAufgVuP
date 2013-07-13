@@ -110,7 +110,7 @@ public class Communicator {
 		return null;
 	}
 
-	public void connect2SaveData(long hash, String str) {
+	public Node connect2SaveData(long hash, String str) {
 		System.err
 				.println(new SimpleDateFormat("hh:mm:ss").format(new Date())
 						+ "    "
@@ -125,11 +125,18 @@ public class Communicator {
 					node.nextNode.getPort());
 			PrintStream ps = new PrintStream(conn.getOutputStream());
 			ps.println(msg);
+			
+			ObjectInputStream ois = new ObjectInputStream(conn.getInputStream());
+			Node respNode = (Node) ois.readObject();
+			return respNode;
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
 		}
+		return null;
 	}
 
 	public String connect2FindData(int searchHash) {

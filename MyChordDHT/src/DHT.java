@@ -67,6 +67,7 @@ public class DHT {
 
 		while (true) {
 			try {
+				System.out.print("-->  ");
 				line = in.readLine();
 				index = line.indexOf(" ");
 
@@ -80,23 +81,36 @@ public class DHT {
 				if (exec.equals("status")) {
 					node.showStatus();
 				} else if (exec.equals("put")) {
-					node.saveData(data.hashCode(), data);
+					Node respNode = node.saveData(data.hashCode(), data);
 					System.out.println("Die Daten wurden gespeichert.");
+					System.out.println("Der Hashwert der Daten lautet: "
+							+ data.hashCode());
+					System.out
+							.println("Die Daten liegen jetzt auf dem Knoten mit ID, IP + Port: "
+									+ respNode.getHash()
+									+ ", "
+									+ respNode.getIp()
+									+ ":"
+									+ respNode.getPort());
 				} else if (exec.equals("get")) {
+					String[] resp = node.loadData(Integer.valueOf(data)).split(",");
 					System.out.println("Die angefragten Daten sind: "
-							+ node.loadData(Integer.valueOf(data)));
+							+ resp[0]);
+					System.out.println("Geantwortet hat der Knoten mit ID, IP + Port: "
+							+ resp[3] + ", " + resp[1] + ":" + resp[2]);
 				} else if (exec.equals("list")) {
 					ArrayList<String> list = node.listData(node.getIp(),
 							node.getPort(), node.getHash());
 					System.out.println("Die im Ring gespeicherten Werte sind:");
+					System.out.println("    Hash --> Data: ");
 					for (Iterator<String> i = list.iterator(); i.hasNext();) {
-						System.out.println(i.next());
+						System.out.println("    " + i.next() + " --> " + i.next());
 					}
-				}
-				if (exec.contains("exit")) {
+				} else if (exec.equals("exit")) {
 					node.stopListening();
 					break;
 				}
+				System.out.println("");
 			} catch (IOException e) {
 				e.printStackTrace();
 			}

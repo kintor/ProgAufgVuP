@@ -76,7 +76,7 @@ public class MessageHandler implements Runnable {
 				System.err.println(new SimpleDateFormat("hh:mm:ss").format(new Date())
 						+ "    " + Thread.currentThread() + "    "
 						+ "Die Aufgabe ist: Speicher die Daten auf dem richtigen Knoten ab.");
-				node.saveData(dataHash, data);
+				outServer.writeObject(node.saveData(dataHash, data));
 				break;
 			case 3:
 				evalLoadData(inMsg);
